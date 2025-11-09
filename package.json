@@ -1,0 +1,52 @@
+{
+  "name": "ollama-webinterface",
+  "version": "2.0.1",
+  "description": "Web interface for Ollama with chat functions",
+  "main": "server.js",
+  "type": "module",
+  "window": {
+    "title": "Ollama Chat Interface",
+    "toolbar": true,
+    "width": 1200,
+    "height": 800,
+    "icon": "icon.png",
+    "position": "center"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "desktop": "nw ."
+  },
+  "keywords": [
+    "ollama",
+    "ai",
+    "chat",
+    "web-interface",
+    "llm",
+    "desktop"
+  ],
+  "author": "I m l e, Martin",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "multer": "^2.0.2",
+    "ollama": "^0.5.18"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phaels/ollama-webinterface.git"
+  },
+  "bugs": {
+    "url": "https://github.com/phaels/ollama-webinterface/issues"
+  },
+  "homepage": "https://github.com/phaels/ollama-webinterface#readme"
+}

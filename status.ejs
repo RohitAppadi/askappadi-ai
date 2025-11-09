@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('../partials/head'); %>
+    <title>System Status - Ollama Chat</title>
+    <style>
+        .status-card {
+            transition: transform 0.2s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-2px);
+        }
+        .health-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .health-good { background-color: #28a745; }
+        .health-warning { background-color: #ffc107; }
+        .health-error { background-color: #dc3545; }
+    </style>
+</head>
+<body class="container">
+    <header>
+        <%- include('../partials/header'); %>
+    </header>
+
+    <main class="my-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-heart-pulse text-primary"></i> System Status
+                    </h1>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshStatus()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Ollama Status -->
+            <div class="col-md-6">
+                <div class="card status-card border-0 shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-robot"></i> Ollama Status
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="health-indicator <%= ollamaStatus === 'connected' ? 'health-good' : 'health-error' %>"></span>
+                            <strong class="me-2">Connection:</strong>
+                            <span class="badge bg-<%= ollamaStatus === 'connected' ? 'success' : 'danger' %>">
+                                <%= ollamaStatus === 'connected' ? 'Connected' : 'Disconnected' %>
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Installed Models:</strong>
+                            <span class="badge bg-secondary ms-2"><%= models.length %></span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Current Model:</strong>
+                            <span class="badge bg-info ms-2"><%= currentModel || 'None' %></span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Available Models:</strong>
+                            <div class="mt-2">
+                                <% if (models.length > 0) { %>
+                                    <% models.forEach(function(model) { %>
+                                        <span class="badge bg-light text-dark border me-1 mb-1"><%= model %></span>
+                                    <% }); %>
+                                <% } else { %>
+                                    <span class="text-muted">No models found</span>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Information (NEW: Using systemInfo) -->
+            <div class="col-md-6">
+                <div class="card status-card border-0 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-cpu"></i> System Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong>Node.js Version:</strong>
+                            <span class="badge bg-secondary ms-2"><%= systemInfo.nodeVersion %></span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Platform:</strong>
+                            <span class="badge bg-secondary ms-2"><%= systemInfo.platform %></span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Uptime:</strong>
+                            <span class="text-muted ms-2">
+                                <%= Math.floor(systemInfo.uptime / 60) %> minutes
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Memory Usage:</strong>
+                            <div class="mt-1">
+                                <small class="text-muted">
+                                    Heap Used: <%= Math.round(systemInfo.memory.heapUsed / 1024 / 1024) %> MB /
+                                    Total: <%= Math.round(systemInfo.memory.heapTotal / 1024 / 1024) %> MB
+                                </small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Chat History:</strong>
+                            <span class="badge bg-secondary ms-2"><%= history.length %> / 10</span>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Current Processing:</strong>
+                            <span class="badge <%= isProcessing ? 'bg-warning' : 'bg-success' %> ms-2">
+                                <%= isProcessing ? 'Active' : 'Inactive' %>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Health Check -->
+            <div class="col-12">
+                <div class="card status-card border-0 shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-plug"></i> API Health Check
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <button class="btn btn-outline-primary me-2" onclick="testAPI()">
+                                <i class="bi bi-play-circle"></i> Run API Test
+                            </button>
+                            <button class="btn btn-outline-success" onclick="viewRawJSON()">
+                                <i class="bi bi-code-slash"></i> Show Raw Data
+                            </button>
+                        </div>
+                        <div id="api-result" class="mt-3" style="display: none;">
+                            <pre class="bg-light p-3 rounded border"><code id="api-result-content">Waiting for result...</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="col-12">
+                <div class="card status-card border-0 shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightning"></i> Quick Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="/" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left"></i> Back to Chat
+                            </a>
+                            <form action="/clear-history" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-outline-danger"
+                                        onclick="return confirm('Do you really want to delete all history?')">
+                                    <i class="bi bi-trash"></i> Clear History
+                                </button>
+                            </form>
+                            <button class="btn btn-outline-info" onclick="location.reload()">
+                                <i class="bi bi-arrow-clockwise"></i> Reload Page
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <%- include('../partials/footer'); %>
+    </footer>
+
+    <script>
+        function refreshStatus() {
+            location.reload();
+        }
+
+        function testAPI() {
+            const resultElement = document.getElementById('api-result-content');
+            const apiResult = document.getElementById('api-result');
+
+            resultElement.textContent = 'Testing API...';
+            apiResult.style.display = 'block';
+
+            fetch('/api/health')
+                .then(response => response.json())
+                .then(data => {
+                    resultElement.textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    resultElement.textContent = 'Error: ' + error.message;
+                });
+        }
+
+        function viewRawJSON() {
+            testAPI(); // Same implementation
+        }
+
+        // Update server time every second
+        function updateServerTime() {
+            const now = new Date();
+            const timeElement = document.getElementById('server-time');
+            if (timeElement) {
+                timeElement.textContent = now.toLocaleString('en-US');
+            }
+        }
+        setInterval(updateServerTime, 1000);
+    </script>
+</body>
+</html>
